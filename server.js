@@ -19,26 +19,51 @@ app.get("/api/images", (req, res) => {
   const baseDir = path.join(__dirname, "drawable");
   const baseUrl = `${req.protocol}://${req.get("host")}`;
 
-  const result = {};
+  const response = {
+    data: {},
+  };
 
-  fs.readdirSync(baseDir).forEach((folder) => {
-    const folderPath = path.join(baseDir, folder);
+  // ---------- HANDLE CODES & PLUGINS ----------
+  ["cheatcodes", "plugins"].forEach((section) => {
+    const sectionPath = path.join(baseDir, section);
+    response.data[section] = { type: "folder", items: {} };
 
-    if (fs.statSync(folderPath).isDirectory()) {
-      result[folder] = fs
-        .readdirSync(folderPath)
-        .filter((file) => /\.(png|jpe?g|webp|gif|svg)$/i.test(file))
-        .map((file) => ({
-          title: formatTitle(file),
-          url: `${baseUrl}/drawable/${folder}/${file}`, 
-        }));
+    if (fs.existsSync(sectionPath)) {
+      fs.readdirSync(sectionPath).forEach((subFolder) => {
+        const subPath = path.join(sectionPath, subFolder);
+
+        if (fs.statSync(subPath).isDirectory()) {
+          response.data[section].items[subFolder] = fs
+            .readdirSync(subPath)
+            .filter((file) => /\.(png|jpe?g|webp|gif|svg|zip)$/i.test(file))
+            .map((file) => ({
+              title: formatTitle(file),
+              url: `${baseUrl}/drawable/${section}/${subFolder}/${file}`,
+            }));
+        }
+      });
     }
   });
 
-  res.json({
-    status: "success",
-    codes: result,
-  });
+  // ---------- HANDLE VIDEO (.txt FILE) ----------
+  const videoPath = path.join(baseDir, "video", "videos.txt");
+
+  response.data.video = { type: "text", items: [] };
+
+  if (fs.existsSync(videoPath)) {
+    const content = fs.readFileSync(videoPath, "utf8");
+
+    response.data.video.items = content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((url, index) => ({
+        id: index + 1,
+        url,
+      }));
+  }
+
+  res.json(response);
 });
 
 
