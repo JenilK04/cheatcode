@@ -16,35 +16,31 @@ app.use("/drawable", express.static(path.join(__dirname, "drawable")));
 
 // ---- API Endpoint ----
 app.get("/api/images", (req, res) => {
-  const imagesDir = path.join(__dirname, "drawable");
+  const baseDir = path.join(__dirname, "drawable");
+  const baseUrl = `${req.protocol}://${req.get("host")}`;
 
-  fs.readdir(imagesDir, (err, files) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({
-        status: "error",
-        message: "Unable to read images directory",
-      }); 
+  const result = {};
+
+  fs.readdirSync(baseDir).forEach((folder) => {
+    const folderPath = path.join(baseDir, folder);
+
+    if (fs.statSync(folderPath).isDirectory()) {
+      result[folder] = fs
+        .readdirSync(folderPath)
+        .filter((file) => /\.(png|jpe?g|webp|gif|svg)$/i.test(file))
+        .map((file) => ({
+          title: formatTitle(file),
+          url: `${baseUrl}/drawable/${folder}/${file}`, 
+        }));
     }
+  });
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-
-    // Build response structure
-    const imageList = files
-      .filter((name) => /\.(png|jpe?g|webp|gif|svg)$/i.test(name))
-      .map((file, index) => ({
-        title: formatTitle(file),
-        name: file,
-        url: `${baseUrl}/drawable/${file}`,
-      }));
-
-    res.json({
-      status: "success",
-      count: imageList.length,
-      images: imageList,
-    });
+  res.json({
+    status: "success",
+    codes: result,
   });
 });
+
 
 // ---- Helper function: make title readable ----
 function formatTitle(filename) {
