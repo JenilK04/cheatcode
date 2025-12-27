@@ -25,21 +25,25 @@ app.get("/api/images", (req, res) => {
   const baseUrl = `${req.protocol}://${req.get("host")}`;
 
   const response = {
-    data: {},
+    data: {
+      cheatcodes: {},
+      plugins: {},
+      video: [],
+    },
   };
 
-  // ---------- HANDLE CHEATCODES & PLUGINS ----------
+  const safe = (v) => encodeURIComponent(v);
+
+  // ---------- CHEATCODES & PLUGINS ----------
   ["cheatcodes", "plugins"].forEach((section) => {
     const sectionPath = path.join(baseDir, section);
-    response.data[section] = {  items: {} };
-
     if (!fs.existsSync(sectionPath)) return;
 
     fs.readdirSync(sectionPath).forEach((subFolder) => {
       const subPath = path.join(sectionPath, subFolder);
 
       if (fs.statSync(subPath).isDirectory()) {
-        response.data[section].items[subFolder] = fs
+        response.data[section][subFolder] = fs
           .readdirSync(subPath)
           .filter((file) => /\.(png|jpe?g|webp|gif|svg|zip)$/i.test(file))
           .map((file) => ({
@@ -50,16 +54,15 @@ app.get("/api/images", (req, res) => {
     });
   });
 
-  // ---------- HANDLE VIDEO (DIRECT FILES) ----------
+  // ---------- VIDEO (DIRECT FILES) ----------
   const videoPath = path.join(baseDir, "video");
-  response.data.video = {  items: [] };
 
   if (fs.existsSync(videoPath)) {
     fs.readdirSync(videoPath).forEach((file) => {
       const filePath = path.join(videoPath, file);
 
       if (fs.statSync(filePath).isFile()) {
-        response.data.video.items.push({
+        response.data.video.push({
           title: formatTitle(file),
           url: `${baseUrl}/drawable/video/${safe(file)}`,
         });
@@ -69,8 +72,6 @@ app.get("/api/images", (req, res) => {
 
   res.json(response);
 });
-
-
 
 // ---- Helper function: make title readable ----
 function formatTitle(filename) {
