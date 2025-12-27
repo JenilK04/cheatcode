@@ -14,6 +14,11 @@ app.use(express.json());
 // Serve images folder publicly
 app.use("/drawable", express.static(path.join(__dirname, "drawable")));
 
+function safe(part) {
+  return encodeURIComponent(part);
+}
+
+
 // ---- API Endpoint ----
 app.get("/api/images", (req, res) => {
   const baseDir = path.join(__dirname, "drawable");
@@ -23,48 +28,48 @@ app.get("/api/images", (req, res) => {
     data: {},
   };
 
-  // ---------- HANDLE CODES & PLUGINS ----------
+  // ---------- HANDLE CHEATCODES & PLUGINS ----------
   ["cheatcodes", "plugins"].forEach((section) => {
     const sectionPath = path.join(baseDir, section);
-    response.data[section] = { type: "folder", items: {} };
+    response.data[section] = {  items: {} };
 
-    if (fs.existsSync(sectionPath)) {
-      fs.readdirSync(sectionPath).forEach((subFolder) => {
-        const subPath = path.join(sectionPath, subFolder);
+    if (!fs.existsSync(sectionPath)) return;
 
-        if (fs.statSync(subPath).isDirectory()) {
-          response.data[section].items[subFolder] = fs
-            .readdirSync(subPath)
-            .filter((file) => /\.(png|jpe?g|webp|gif|svg|zip)$/i.test(file))
-            .map((file) => ({
-              title: formatTitle(file),
-              url: `${baseUrl}/drawable/${section}/${subFolder}/${file}`,
-            }));
-        }
-      });
-    }
+    fs.readdirSync(sectionPath).forEach((subFolder) => {
+      const subPath = path.join(sectionPath, subFolder);
+
+      if (fs.statSync(subPath).isDirectory()) {
+        response.data[section].items[subFolder] = fs
+          .readdirSync(subPath)
+          .filter((file) => /\.(png|jpe?g|webp|gif|svg|zip)$/i.test(file))
+          .map((file) => ({
+            title: formatTitle(file),
+            url: `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(file)}`,
+          }));
+      }
+    });
   });
 
-  // ---------- HANDLE VIDEO (.txt FILE) ----------
-  const videoPath = path.join(baseDir, "video", "videos.txt");
-
-  response.data.video = { type: "text", items: [] };
+  // ---------- HANDLE VIDEO (DIRECT FILES) ----------
+  const videoPath = path.join(baseDir, "video");
+  response.data.video = {  items: [] };
 
   if (fs.existsSync(videoPath)) {
-    const content = fs.readFileSync(videoPath, "utf8");
+    fs.readdirSync(videoPath).forEach((file) => {
+      const filePath = path.join(videoPath, file);
 
-    response.data.video.items = content
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((url, index) => ({
-        id: index + 1,
-        url,
-      }));
+      if (fs.statSync(filePath).isFile()) {
+        response.data.video.items.push({
+          title: formatTitle(file),
+          url: `${baseUrl}/drawable/video/${safe(file)}`,
+        });
+      }
+    });
   }
 
   res.json(response);
 });
+
 
 
 // ---- Helper function: make title readable ----
