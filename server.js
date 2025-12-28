@@ -67,8 +67,8 @@ app.get("/api/images", (req, res) => {
 
   const response = {
     data: {
-      codes: {},
-      plugins: {},
+      codes: [],
+      plugins: [],
       video: [],
     },
   };
