@@ -11,12 +11,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve images folder publicly
+// Serve drawable folder
 app.use("/drawable", express.static(path.join(__dirname, "drawable")));
 
 // ---------------- HELPERS ----------------
-function safe(part) {
-  return encodeURIComponent(part);
+function safe(v) {
+  return encodeURIComponent(v);
 }
 
 function parseFile(file) {
@@ -33,7 +33,7 @@ function parseFile(file) {
   return { name, cheatcode };
 }
 
-// 🔹 Read plugin cheatcodes (image name WITHOUT extension)
+// Read plugin cheatcodes from TXT (image name WITHOUT extension)
 function readPluginCheatcodes(folderPath) {
   const txtFile = fs
     .readdirSync(folderPath)
@@ -42,12 +42,12 @@ function readPluginCheatcodes(folderPath) {
   if (!txtFile) return {};
 
   const content = fs.readFileSync(path.join(folderPath, txtFile), "utf-8");
-
   const map = {};
+
   content.split(/\r?\n/).forEach((line) => {
     if (!line.includes("=")) return;
-    const [imageName, link] = line.split("=");
-    map[imageName.trim()] = link.trim();
+    const [key, link] = line.split("=");
+    map[key.trim()] = link.trim();
   });
 
   return map;
@@ -73,6 +73,7 @@ app.get("/api/images", (req, res) => {
     },
   };
 
+  // --------- CODES & PLUGINS (ARRAY FORMAT) ---------
   ["codes", "plugins"].forEach((section) => {
     const sectionPath = path.join(baseDir, section);
     if (!fs.existsSync(sectionPath)) return;
@@ -107,13 +108,13 @@ app.get("/api/images", (req, res) => {
         )
         .map((file) => {
           const parsed = parseFile(file);
-          const fileNameOnly = file.replace(/\.[^/.]+$/, "");
+          const fileKey = file.replace(/\.[^/.]+$/, "");
 
           return {
             name: parsed.name,
             cheatcode:
               section === "plugins"
-                ? pluginCheatMap[fileNameOnly] || ""
+                ? pluginCheatMap[fileKey] || ""
                 : parsed.cheatcode,
             url: `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(
               file
@@ -121,10 +122,11 @@ app.get("/api/images", (req, res) => {
           };
         });
 
-      response.data[section][subFolder] = {
+      response.data[section].push({
+        category: subFolder,
         image: categoryImage,
         items,
-      };
+      });
     });
   });
 
@@ -146,7 +148,7 @@ app.get("/api/images", (req, res) => {
 });
 
 // ---------------- SERVER ----------------
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5001; // use 5001 for separate subdomain
 app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
+  console.log(`🚀 Image API running on port ${PORT}`)
 );
