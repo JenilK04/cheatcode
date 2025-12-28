@@ -1,0 +1,4 @@
+RCB=https://bikedriving3dcheats.com/game/ipltexture/rcb.jpg
+CSK=https://bikedriving3dcheats.com/game/ipltexture/csk.jpg
+MI=https://bikedriving3dcheats.com/game/ipltexture/mi.jpg
+KKR=https://bikedriving3dcheats.com/game/ipltexture/kkr.jpg

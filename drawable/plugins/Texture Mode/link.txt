@@ -1,0 +1,3 @@
+GIC=https://www.dropbox.com/scl/fi/cue5iqc87z1vr3u6v5puv/VillageMap_PLUGIN?rlkey=0x2b9wavgsilwnveo37epnqn3&st=wlb7ntpk&dl=1
+GIC2=https://www.dropbox.com/scl/fi/9727al5yedeyjbg53me8w/RaceTrack_PLUGIN?rlkey=nz64s1v6oo8x76eaba0eb84nv&st=9uikya3g&dl=1
+RIC=https://www.dropbox.com/scl/fi/iqkgrscccriwazwb39scj/GodZilla_PLUGIN?rlkey=wtpl2y61t425cui7diasf228j&st=h65qh2wt&dl=1

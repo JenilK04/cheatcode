@@ -14,6 +14,7 @@ app.use(express.json());
 // Serve images folder publicly
 app.use("/drawable", express.static(path.join(__dirname, "drawable")));
 
+// ---------------- HELPERS ----------------
 function safe(part) {
   return encodeURIComponent(part);
 }
@@ -23,17 +24,43 @@ function parseFile(file) {
   const parts = nameWithoutExt.split("__");
 
   const name = parts[0]
-    ? parts[0].replace(/[_-]/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    ? parts[0]
+        .replace(/[_-]/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase())
     : "";
 
   const cheatcode = parts[1] || "";
-
   return { name, cheatcode };
 }
 
+// 🔹 Read plugin cheatcodes (image name WITHOUT extension)
+function readPluginCheatcodes(folderPath) {
+  const txtFile = fs
+    .readdirSync(folderPath)
+    .find((f) => /\.txt$/i.test(f));
 
+  if (!txtFile) return {};
 
-// ---- API Endpoint ----
+  const content = fs.readFileSync(path.join(folderPath, txtFile), "utf-8");
+
+  const map = {};
+  content.split(/\r?\n/).forEach((line) => {
+    if (!line.includes("=")) return;
+    const [imageName, link] = line.split("=");
+    map[imageName.trim()] = link.trim();
+  });
+
+  return map;
+}
+
+function formatTitle(filename) {
+  return filename
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// ---------------- API ----------------
 app.get("/api/images", (req, res) => {
   const baseDir = path.join(__dirname, "drawable");
   const baseUrl = `${req.protocol}://${req.get("host")}`;
@@ -46,60 +73,66 @@ app.get("/api/images", (req, res) => {
     },
   };
 
-  const safe = (v) => encodeURIComponent(v);
-
-  // ---------- CHEATCODES & PLUGINS ----------
   ["codes", "plugins"].forEach((section) => {
     const sectionPath = path.join(baseDir, section);
     if (!fs.existsSync(sectionPath)) return;
 
     fs.readdirSync(sectionPath).forEach((subFolder) => {
       const subPath = path.join(sectionPath, subFolder);
+      if (!fs.statSync(subPath).isDirectory()) return;
 
-      if (fs.statSync(subPath).isDirectory()) {
-        const allFiles = fs.readdirSync(subPath);
+      const allFiles = fs.readdirSync(subPath);
 
-  // ---- CATEGORY IMAGE (cover) ----
-  const coverFile = allFiles.find((f) =>
-    /^coverimg\.(png|jpe?g|webp)$/i.test(f)
-  );
+      // ---- COVER IMAGE ----
+      const coverFile = allFiles.find((f) =>
+        /^coverimg\.(png|jpe?g|webp)$/i.test(f)
+      );
 
-  const categoryImage = coverFile
-    ? `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(coverFile)}`
-    : null;
+      const categoryImage = coverFile
+        ? `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(
+            coverFile
+          )}`
+        : null;
 
-  // ---- ITEMS ----
+      // ---- PLUGIN CHEATCODE MAP ----
+      const pluginCheatMap =
+        section === "plugins" ? readPluginCheatcodes(subPath) : {};
+
+      // ---- ITEMS ----
       const items = allFiles
         .filter(
           (file) =>
             /\.(png|jpe?g|webp|gif|svg|zip)$/i.test(file) &&
-            !/^cover\./i.test(file)
-    )
-    .map((file) => {
-      const parsed = parseFile(file);
-      return {
-        name: parsed.name,
-        cheatcode: parsed.cheatcode,
-        url: `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(file)}`,
+            !/^cover/i.test(file)
+        )
+        .map((file) => {
+          const parsed = parseFile(file);
+          const fileNameOnly = file.replace(/\.[^/.]+$/, "");
+
+          return {
+            name: parsed.name,
+            cheatcode:
+              section === "plugins"
+                ? pluginCheatMap[fileNameOnly] || ""
+                : parsed.cheatcode,
+            url: `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(
+              file
+            )}`,
+          };
+        });
+
+      response.data[section][subFolder] = {
+        image: categoryImage,
+        items,
       };
-    });
-
-  response.data[section][subFolder] = {
-    image: categoryImage,
-    items,
-  };
-}
-
     });
   });
 
-  // ---------- VIDEO (DIRECT FILES) ----------
+  // --------- VIDEO ---------
   const videoPath = path.join(baseDir, "video");
-
   if (fs.existsSync(videoPath)) {
     fs.readdirSync(videoPath).forEach((file) => {
       const filePath = path.join(videoPath, file);
-
       if (fs.statSync(filePath).isFile()) {
         response.data.video.push({
           title: formatTitle(file),
@@ -112,14 +145,8 @@ app.get("/api/images", (req, res) => {
   res.json(response);
 });
 
-// ---- Helper function: make title readable ----
-function formatTitle(filename) {
-  return filename
-    .replace(/\.[^/.]+$/, "")   // remove file extension
-    .replace(/[_-]/g, " ")      // replace _ or - with space
-    .replace(/\b\w/g, (c) => c.toUpperCase()); // Capitalize words
-}
-
-// ---- Start server ----
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// ---------------- SERVER ----------------
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT}`)
+);
