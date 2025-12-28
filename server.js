@@ -18,6 +18,20 @@ function safe(part) {
   return encodeURIComponent(part);
 }
 
+function parseFile(file) {
+  const nameWithoutExt = file.replace(/\.[^/.]+$/, "");
+  const parts = nameWithoutExt.split("__");
+
+  const name = parts[0]
+    ? parts[0].replace(/[_-]/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    : "";
+
+  const cheatcode = parts[1] || "";
+
+  return { name, cheatcode };
+}
+
+
 
 // ---- API Endpoint ----
 app.get("/api/images", (req, res) => {
@@ -26,7 +40,7 @@ app.get("/api/images", (req, res) => {
 
   const response = {
     data: {
-      cheatcodes: {},
+      codes: {},
       plugins: {},
       video: [],
     },
@@ -35,7 +49,7 @@ app.get("/api/images", (req, res) => {
   const safe = (v) => encodeURIComponent(v);
 
   // ---------- CHEATCODES & PLUGINS ----------
-  ["cheatcodes", "plugins"].forEach((section) => {
+  ["codes", "plugins"].forEach((section) => {
     const sectionPath = path.join(baseDir, section);
     if (!fs.existsSync(sectionPath)) return;
 
@@ -43,14 +57,39 @@ app.get("/api/images", (req, res) => {
       const subPath = path.join(sectionPath, subFolder);
 
       if (fs.statSync(subPath).isDirectory()) {
-        response.data[section][subFolder] = fs
-          .readdirSync(subPath)
-          .filter((file) => /\.(png|jpe?g|webp|gif|svg|zip)$/i.test(file))
-          .map((file) => ({
-            title: formatTitle(file),
-            url: `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(file)}`,
-          }));
-      }
+        const allFiles = fs.readdirSync(subPath);
+
+  // ---- CATEGORY IMAGE (cover) ----
+  const coverFile = allFiles.find((f) =>
+    /^coverimg\.(png|jpe?g|webp)$/i.test(f)
+  );
+
+  const categoryImage = coverFile
+    ? `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(coverFile)}`
+    : null;
+
+  // ---- ITEMS ----
+      const items = allFiles
+        .filter(
+          (file) =>
+            /\.(png|jpe?g|webp|gif|svg|zip)$/i.test(file) &&
+            !/^cover\./i.test(file)
+    )
+    .map((file) => {
+      const parsed = parseFile(file);
+      return {
+        name: parsed.name,
+        cheatcode: parsed.cheatcode,
+        url: `${baseUrl}/drawable/${safe(section)}/${safe(subFolder)}/${safe(file)}`,
+      };
+    });
+
+  response.data[section][subFolder] = {
+    image: categoryImage,
+    items,
+  };
+}
+
     });
   });
 
