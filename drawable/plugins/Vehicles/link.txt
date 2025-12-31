@@ -6,3 +6,4 @@ Roles Royce=https://www.dropbox.com/scl/fi/f7m1gsofw8a1aeqs5fgbj/PigCar_PLUGIN?r
 Swift=https://www.dropbox.com/scl/fi/h42he899smkaguw2hlrmr/Swift-2024_PLUGIN?rlkey=m797a9dqvvqekhzld0cj91ce1&st=8dxo9l47&dl=1
 Terzo=https://www.dropbox.com/scl/fi/0489xax4vzb9t32yx1ivz/Terzo-Lambo_PLUGIN?rlkey=jf9cuxhx9mbu9r6fcho50fhly&st=2tsbtqah&dl=1
 Big Aeroplane=https://www.dropbox.com/scl/fi/mp8eo6terxyvu334fp4l9/PeaCock_PLUGIN?rlkey=ofxzadyvfsudjc12nqludu183&st=56s15fn6&dl=1
+Buggy=https://www.dropbox.com/scl/fi/0489xax4vzb9t32yx1ivz/Terzo-Lambo_PLUGIN?rlkey=jf9cuxhx9mbu9r6fcho50fhly&st=2tsbtqah&dl=1
